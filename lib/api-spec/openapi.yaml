@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: KusuriCheck API - Japanese medicine information assistant
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: analyze
+    description: Document analysis
+  - name: demo
+    description: Demo samples
 paths:
   /healthz:
     get:
@@ -24,6 +28,96 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /demo-samples:
+    get:
+      operationId: listDemoSamples
+      tags: [demo]
+      summary: List built-in demo samples
+      responses:
+        "200":
+          description: List of demo samples
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DemoSample"
+  /analyze-demo:
+    post:
+      operationId: analyzeDemoSample
+      tags: [analyze]
+      summary: Analyze a built-in demo sample (no upload)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeDemoRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeResponse"
+        "400":
+          description: Invalid demo id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /analyze:
+    post:
+      operationId: analyzeUpload
+      tags: [analyze]
+      summary: Analyze an uploaded image (multipart/form-data)
+      description: |
+        Accepts an image (JPEG, PNG, WebP) or PDF up to 10 MB along with the
+        user preferences. The request body MUST be sent as
+        `multipart/form-data` with two parts:
+
+          * `file` (required): the binary image or PDF to analyze.
+          * `preferences` (optional): a JSON-serialized
+            `UserPreferences` object. When omitted, the server applies safe
+            defaults (Japanese, standard audience, no caution flags).
+
+        Returns the same `AnalyzeResponse` shape as `/analyze-demo`.
+
+        The multipart request schema is intentionally not modeled here so
+        OpenAPI codegen targeting Node-only libraries does not pull in
+        DOM-only `File` / `Blob` types. The frontend uses a hand-written
+        client (`src/lib/analyzeClient.ts`) that mirrors `AnalyzeResponse`.
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeResponse"
+        "400":
+          description: Invalid file or preferences payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Uploaded file exceeded the 10 MB limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Image could not be read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: OCR or explainer provider failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -31,6 +125,188 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+        version:
+          type: string
+        processing_mode:
+          type: string
+          enum: [mock, gemini, fallback]
+        timestamp:
+          type: string
+      required: [status, version, processing_mode, timestamp]
 
+    DemoSample:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        label_en:
+          type: string
+        description:
+          type: string
+        content_type:
+          type: string
+          enum: [otc, supplement, instruction_sheet, package_insert_fragment, unclear]
+      required: [id, label, label_en, description, content_type]
+
+    UserPreferences:
+      type: object
+      properties:
+        language:
+          type: string
+          enum: [ja, en]
+          default: ja
+        audience_mode:
+          type: string
+          enum: [standard, simple, caregiver]
+          default: standard
+        caution_profile:
+          $ref: "#/components/schemas/CautionProfile"
+      required: [language, audience_mode, caution_profile]
+
+    CautionProfile:
+      type: object
+      properties:
+        pregnant_breastfeeding:
+          type: boolean
+          default: false
+        elderly:
+          type: boolean
+          default: false
+        child_use:
+          type: boolean
+          default: false
+        liver_concern:
+          type: boolean
+          default: false
+        kidney_concern:
+          type: boolean
+          default: false
+      required:
+        [pregnant_breastfeeding, elderly, child_use, liver_concern, kidney_concern]
+
+    AnalyzeDemoRequest:
+      type: object
+      properties:
+        demo_id:
+          type: string
+        preferences:
+          $ref: "#/components/schemas/UserPreferences"
+      required: [demo_id, preferences]
+
+    EvidenceLine:
+      type: object
+      properties:
+        japanese_text:
+          type: string
+        normalized_meaning:
+          type: string
+        category:
+          type: string
+          enum: [use, dosage, warning, age_restriction, ingredient, storage, unknown]
+      required: [japanese_text, normalized_meaning, category]
+
+    ConsultFlag:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [pharmacist, doctor]
+        reason:
+          type: string
+      required: [type, reason]
+
+    ParsedSections:
+      type: object
+      properties:
+        intended_use:
+          type: string
+          nullable: true
+        dosage:
+          type: string
+          nullable: true
+        warnings:
+          type: array
+          items:
+            type: string
+        ingredients:
+          type: array
+          items:
+            type: string
+        storage:
+          type: string
+          nullable: true
+        age_notes:
+          type: string
+          nullable: true
+      required: [warnings, ingredients]
+
+    AnalyzeResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+        content_type:
+          type: string
+          enum: [otc, supplement, instruction_sheet, package_insert_fragment, unclear]
+        product_name:
+          type: string
+          nullable: true
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+        sections:
+          $ref: "#/components/schemas/ParsedSections"
+        consult_flags:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsultFlag"
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvidenceLine"
+        summary_ja:
+          type: string
+        summary_en:
+          type: string
+        raw_ocr_text:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        escalation_level:
+          type: integer
+          minimum: 0
+          maximum: 3
+        processing_mode:
+          type: string
+          enum: [mock, gemini, fallback]
+      required:
+        - request_id
+        - content_type
+        - confidence_score
+        - sections
+        - consult_flags
+        - evidence
+        - summary_ja
+        - summary_en
+        - raw_ocr_text
+        - warnings
+        - escalation_level
+        - processing_mode
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+          nullable: true
+      required: [error, message]
