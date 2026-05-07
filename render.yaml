@@ -20,6 +20,7 @@ services:
   - type: web            
     name: kusuricheck-frontend
     runtime: static      
+    installCommand: pnpm install --no-frozen-lockfile
     buildCommand: pnpm --filter @workspace/api-spec run codegen && pnpm --filter @workspace/kusuricheck run build
     staticPublishPath: ./artifacts/kusuricheck/dist/public
     envVars:
