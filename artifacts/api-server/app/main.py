@@ -25,13 +25,6 @@ app = FastAPI(
     version=settings.version,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.middleware("http")
@@ -48,6 +41,16 @@ async def request_context(request: Request, call_next):  # type: ignore[no-untyp
             request_id=request.state.request_id,
         )
     return response
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 def _request_id_for(request: Request) -> str | None:

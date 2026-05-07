@@ -65,7 +65,7 @@ export async function analyzeFile(
   form.append("file", input.file);
   form.append("preferences", JSON.stringify(input.preferences));
 
-  const baseUrl = import.meta.env.VITE_API_URL || "";
+  const baseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
   const resp = await fetch(`${baseUrl}/api/analyze`, {
     method: "POST",
     body: form,
