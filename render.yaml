@@ -20,9 +20,11 @@ services:
   - type: web            
     name: kusuricheck-frontend
     runtime: static      
-    buildCommand: pnpm install --ignore-scripts && pnpm --filter @workspace/kusuricheck run build
+    buildCommand: npm install -g pnpm@9 && pnpm install --ignore-scripts && pnpm --filter @workspace/api-spec run codegen && pnpm --filter @workspace/kusuricheck run build
     staticPublishPath: ./artifacts/kusuricheck/dist/public
     envVars:
+      - key: NODE_VERSION
+        value: 20
       - key: VITE_API_URL
         fromService:
           type: web
