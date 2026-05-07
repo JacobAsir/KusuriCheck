@@ -1,8 +1,8 @@
 # 💊 KusuriCheck
 
-**KusuriCheck** is a privacy-first, AI-powered utility application designed to help English speakers and tourists understand Japanese over-the-counter (OTC) medicine packaging, supplement labels, and pharmacy instruction sheets safely and easily.
+**Product:** A medicine and supplement sheet scanner for Japan. Users scan OTC medicine boxes, prescription instruction sheets, or supplement labels and get plain Japanese/English explanations for dosage timing, warnings, ingredient conflicts, and "when to avoid."
 
-By taking a photo of a Japanese medicine label, KusuriCheck provides a careful, bilingual (Japanese + English) summary, extracts structured fields (intended use, dosage, warnings, active ingredients), and flags critical pharmacist or doctor consultations using a deterministic safety engine.
+**Use case:** Japan has an aging population and a strong consumer health market, so people often deal with dense medical instructions, small print, and uncertainty around safe usage. A product like this works because it is a label-reading pattern, but with higher trust requirements and more structured explanation logic.
 
 **Disclaimer:** KusuriCheck is **not** a doctor, pharmacist, or diagnostic tool. It never recommends a dose and never invents content that is not visible on the label. Always consult a healthcare professional for medical advice.
 
@@ -42,20 +42,17 @@ This project is structured as a pnpm monorepo consisting of two main services:
 - **Frontend (`artifacts/kusuricheck/`):** React + Vite SPA built with TypeScript, Tailwind CSS, and shadcn/ui. Communicates with the backend through a shared OpenAPI contract.
 - **Backend (`artifacts/api-server/`):** Python 3.11 + FastAPI server. Entirely stateless with no database. Requires a Gemini API key for OCR and analysis.
 
-### The Pipeline
+### 🔄 The Pipeline
 
-```text
-Upload Image
-      │
-      ▼
-┌─────────────┐    ┌─────────────┐
-│ Gemini Flash│ -> │ Rule engine │
-│ Single-Pass │    │ R01..R10    │
-│ Extraction  │    │ deterministic│
-└─────────────┘    └─────────────┘
-      │                  │
-      ▼                  ▼
-Structured JSON + Bilingual Summary
+```mermaid
+flowchart TD
+    A[📷 Upload Image] --> B[Gemini Flash Vision AI]
+    B -->|Raw Text & Entities| C{Deterministic Safety Engine}
+    C -->|R01, R02, R09| D[🔴 Doctor Consultation Flag]
+    C -->|R03, R04, R05| E[🟠 Pharmacist Consultation Flag]
+    C -->|R10 Boxed Warning| F[🚨 Level 3 Escalation]
+    C --> G[✅ Structured JSON Response]
+    C --> H[✅ Bilingual Summary EN/JP]
 ```
 
 ### Deterministic Safety Engine (R01–R10)
