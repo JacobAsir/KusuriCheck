@@ -20,7 +20,7 @@ services:
   - type: web            
     name: kusuricheck-frontend
     runtime: static      
-    buildCommand: npm install -g pnpm@9 && pnpm install --no-frozen-lockfile --ignore-scripts && pnpm --filter @workspace/api-spec run codegen && pnpm --filter @workspace/kusuricheck run build
+    buildCommand: npm install -g pnpm@9 && rm -f pnpm-lock.yaml && pnpm install --ignore-scripts && pnpm --filter @workspace/api-spec run codegen && pnpm --filter @workspace/kusuricheck run build
     staticPublishPath: ./artifacts/kusuricheck/dist/public
     envVars:
       - key: NODE_VERSION
