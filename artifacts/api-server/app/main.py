@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import analyze, demo, health
+from app.api import analyze, health
 from app.core.config import settings
 from app.core.errors import KusuriCheckError
 from app.core.logging import configure_logging, logger
@@ -116,7 +116,6 @@ async def validation_exception_handler(
 
 # All endpoints are mounted under /api so the upstream proxy can route correctly.
 app.include_router(health.router, prefix="/api")
-app.include_router(demo.router, prefix="/api")
 app.include_router(analyze.router, prefix="/api")
 
 

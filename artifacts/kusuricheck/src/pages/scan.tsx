@@ -14,7 +14,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-import { useListDemoSamples, useAnalyzeDemoSample } from "@workspace/api-client-react";
 import { useAnalyzeFile, DEFAULT_PREFERENCES, type UserPreferences } from "@/lib/analyzeClient";
 import { useAppContext } from "@/lib/store";
 
@@ -22,20 +21,17 @@ export default function Scan() {
   const [, setLocation] = useLocation();
   const { setResult } = useAppContext();
   
-  const { data: demoSamples, isLoading: loadingDemos } = useListDemoSamples();
-  const analyzeDemo = useAnalyzeDemoSample();
   const analyzeFile = useAnalyzeFile();
   
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [activeTab, setActiveTab] = useState<"upload" | "demo">("upload");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isPending = analyzeDemo.isPending || analyzeFile.isPending;
-  const error = analyzeDemo.error || analyzeFile.error;
+  const isPending = analyzeFile.isPending;
+  const error = analyzeFile.error;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -96,17 +92,6 @@ export default function Scan() {
     );
   };
 
-  const handleDemoSubmit = (demoId: string) => {
-    analyzeDemo.mutate(
-      { data: { demo_id: demoId, preferences } },
-      {
-        onSuccess: (data) => {
-          setResult(data);
-          setLocation("/result");
-        }
-      }
-    );
-  };
 
   const updateCautionProfile = (key: keyof typeof preferences.caution_profile, checked: boolean) => {
     setPreferences(prev => ({
@@ -143,7 +128,7 @@ export default function Scan() {
     <div className="container mx-auto max-w-5xl py-8 px-4 md:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Scan Document</h1>
-        <p className="text-muted-foreground mt-2">Upload a photo of a label or select a demo sample to analyze.</p>
+        <p className="text-muted-foreground mt-2">Upload a photo of a label to analyze it with AI.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -159,13 +144,6 @@ export default function Scan() {
             </Alert>
           )}
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="upload" data-testid="tab-upload">Upload Photo</TabsTrigger>
-              <TabsTrigger value="demo" data-testid="tab-demo">Demo Samples</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="upload" className="m-0">
               <Card className="border-2 border-dashed border-border/60 bg-background/50">
                 <CardContent className="p-0">
                   <div 
@@ -232,43 +210,6 @@ export default function Scan() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="demo" className="m-0">
-              {loadingDemos ? (
-                <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {demoSamples?.map((sample) => (
-                    <Card key={sample.id} className="cursor-pointer hover:border-primary/50 transition-colors group flex flex-col">
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground uppercase tracking-wider">
-                            {sample.content_type.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <CardTitle className="text-base group-hover:text-primary transition-colors">{sample.label_en}</CardTitle>
-                        <CardDescription className="text-xs">{sample.label}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0 text-sm text-muted-foreground flex-1">
-                        {sample.description}
-                      </CardContent>
-                      <CardFooter className="p-4 pt-0 mt-auto">
-                        <Button 
-                          variant="secondary" 
-                          className="w-full gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                          onClick={() => handleDemoSubmit(sample.id)}
-                          data-testid={`button-demo-${sample.id}`}
-                        >
-                          <Sparkles className="h-4 w-4" /> Analyze
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
         </div>
 
         {/* Preferences Sidebar */}

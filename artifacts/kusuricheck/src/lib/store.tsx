@@ -1,40 +1,83 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AnalyzeResponse } from '@/lib/analyzeClient';
 
-type AppContextType = {
-  result: AnalyzeResponse | null;
-  setResult: (result: AnalyzeResponse | null) => void;
-  uiLanguage: 'en' | 'ja';
-  setUiLanguage: (lang: 'en' | 'ja') => void;
+export type HistoryItem = {
+  id: string;
+  timestamp: number;
+  result: AnalyzeResponse;
+  fileName: string;
+  previewUrl?: string;
+  thumbnail?: string;
 };
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [result, setResult] = useState<AnalyzeResponse | null>(null);
+type AppState = {
+  result: AnalyzeResponse | null;
+  history: HistoryItem[];
+  uiLanguage: 'en' | 'ja';
   
-  // Initialize from localStorage or default to 'en'
-  const [uiLanguage, setUiLanguageState] = useState<'en' | 'ja'>(() => {
-    const saved = localStorage.getItem('kusuri_ui_lang');
-    return (saved === 'en' || saved === 'ja') ? saved : 'en';
-  });
+  // Actions
+  setResult: (result: AnalyzeResponse | null) => void;
+  setUiLanguage: (lang: 'en' | 'ja') => void;
+  addToHistory: (result: AnalyzeResponse, fileName: string, previewUrl?: string, thumbnail?: string) => void;
+  removeFromHistory: (id: string) => void;
+  clearHistory: () => void;
+};
 
-  const setUiLanguage = (lang: 'en' | 'ja') => {
-    setUiLanguageState(lang);
-    localStorage.setItem('kusuri_ui_lang', lang);
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      result: null,
+      history: [],
+      uiLanguage: 'en',
+
+      setResult: (result) => set({ result }),
+      
+      setUiLanguage: (uiLanguage) => set({ uiLanguage }),
+      
+      addToHistory: (result, fileName, previewUrl, thumbnail) => set((state) => {
+        const newItem: HistoryItem = {
+          id: Math.random().toString(36).substring(2, 9),
+          timestamp: Date.now(),
+          result,
+          fileName,
+          previewUrl,
+          thumbnail,
+        };
+        return { 
+          history: [newItem, ...state.history].slice(0, 50), // Keep last 50
+          result: result // Also set current result
+        };
+      }),
+
+      removeFromHistory: (id) => set((state) => ({
+        history: state.history.filter(item => item.id !== id)
+      })),
+
+      clearHistory: () => set({ history: [] }),
+    }),
+    {
+      name: 'kusuricheck-storage',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
+
+// Backward compatibility wrapper for useAppContext
+export function useAppContext() {
+  const store = useAppStore();
+  return {
+    result: store.result,
+    setResult: store.setResult,
+    uiLanguage: store.uiLanguage,
+    setUiLanguage: store.setUiLanguage,
+    history: store.history,
+    addToHistory: store.addToHistory,
+    removeFromHistory: store.removeFromHistory,
   };
-
-  return (
-    <AppContext.Provider value={{ result, setResult, uiLanguage, setUiLanguage }}>
-      {children}
-    </AppContext.Provider>
-  );
 }
 
-export function useAppContext() {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
-  return context;
+// Still export AppProvider as a no-op to avoid breaking App.tsx immediately
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

@@ -76,6 +76,7 @@ export default function Result() {
   
   // At level 3, we suppress the structured sections to prevent reliance on partial data
   const suppressSections = escLevel === 3;
+  const currentSections = (lang === "en" ? result.sections_en : result.sections_ja) || result.sections;
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4 md:px-8 pb-24">
@@ -96,6 +97,36 @@ export default function Result() {
       </div>
 
       <div className="space-y-6">
+        {/* Escalation Banner - MOVED TO TOP for safety visibility */}
+        {escLevel > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-xl border-2 p-5 ${escStyle.bg} ${escStyle.border} shadow-lg`}
+          >
+            <div className="flex items-start gap-4">
+              <div className="mt-0.5 scale-125">{escStyle.icon}</div>
+              <div className="flex-1">
+                <h3 className={`text-sm font-bold uppercase tracking-wider mb-1 ${escStyle.text}`}>
+                  {escStyle.title}
+                </h3>
+                <div className="space-y-2 mt-2">
+                  {result.consult_flags.map((flag, i) => (
+                    <p key={i} className={`text-base font-medium ${escStyle.text}`}>
+                      {flag.type === 'doctor' ? '⚠️ Doctor Consult Required:' : '💊 Pharmacist Consult Recommended:'} {flag.reason}
+                    </p>
+                  ))}
+                  {result.warnings.map((warning, i) => (
+                    <p key={`w-${i}`} className={`text-sm ${escStyle.text} opacity-90 italic`}>
+                      • {warning}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Main Title Card */}
         <Card className="border-border/60 shadow-sm overflow-hidden">
           <div className="bg-primary/5 px-6 py-4 border-b border-border/40 flex flex-wrap gap-2 items-center justify-between">
@@ -109,7 +140,7 @@ export default function Result() {
           </div>
           <CardHeader className="px-6 py-5">
             <CardTitle className="text-2xl md:text-3xl text-foreground font-bold">
-              {result.product_name || "Unidentified Product"}
+              {(lang === "en" ? result.product_name_en : result.product_name) || result.product_name || "Unidentified Product"}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-6 pb-6 pt-0">
@@ -120,31 +151,6 @@ export default function Result() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Escalation Banner */}
-        {escLevel > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`rounded-xl border p-5 ${escStyle.bg} ${escStyle.border}`}
-          >
-            <div className="flex items-start gap-4">
-              <div className="mt-0.5">{escStyle.icon}</div>
-              <div className="flex-1">
-                <h3 className={`text-sm font-bold uppercase tracking-wider mb-1 ${escStyle.text}`}>
-                  {escStyle.title}
-                </h3>
-                <div className="space-y-2 mt-2">
-                  {result.consult_flags.map((flag, i) => (
-                    <p key={i} className={`text-sm ${escStyle.text} opacity-90`}>
-                      <strong>{flag.type === 'doctor' ? 'Doctor Consult:' : 'Pharmacist Consult:'}</strong> {flag.reason}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Structured Sections (Suppressed on Level 3) */}
         {!suppressSections ? (
@@ -160,19 +166,28 @@ export default function Result() {
                 <CardContent className="p-6 space-y-5">
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Intended Use</h4>
-                    <p className="text-sm text-foreground">{result.sections.intended_use || "Not specified"}</p>
+                    <p className="text-sm text-foreground">{currentSections.intended_use || "Not specified"}</p>
                   </div>
                   <Separator />
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Dosage Instructions</h4>
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{result.sections.dosage || "Not specified"}</p>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{currentSections.dosage || "Not specified"}</p>
                   </div>
-                  {result.sections.age_notes && (
+                  {currentSections.age_notes && (
                     <>
                       <Separator />
                       <div>
                         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Age Restrictions</h4>
-                        <p className="text-sm text-foreground">{result.sections.age_notes}</p>
+                        <p className="text-sm text-foreground">{currentSections.age_notes}</p>
+                      </div>
+                    </>
+                  )}
+                  {currentSections.storage && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Storage Instructions</h4>
+                        <p className="text-sm text-foreground">{currentSections.storage}</p>
                       </div>
                     </>
                   )}
@@ -191,9 +206,9 @@ export default function Result() {
                 <CardContent className="p-6 space-y-5">
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Key Warnings</h4>
-                    {result.sections.warnings.length > 0 ? (
+                    {currentSections.warnings.length > 0 ? (
                       <ul className="space-y-2">
-                        {result.sections.warnings.map((w, i) => (
+                        {currentSections.warnings.map((w, i) => (
                           <li key={i} className="text-sm text-foreground flex items-start gap-2">
                             <span className="text-orange-500 mt-0.5">•</span>
                             <span>{w}</span>
@@ -209,9 +224,9 @@ export default function Result() {
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
                       <Beaker className="h-3.5 w-3.5" /> Ingredients
                     </h4>
-                    {result.sections.ingredients.length > 0 ? (
+                    {currentSections.ingredients.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {result.sections.ingredients.map((ing, i) => (
+                        {currentSections.ingredients.map((ing, i) => (
                           <Badge key={i} variant="secondary" className="font-normal bg-secondary/50 hover:bg-secondary text-xs">
                             {ing}
                           </Badge>

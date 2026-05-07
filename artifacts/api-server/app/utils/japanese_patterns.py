@@ -137,3 +137,21 @@ EVIDENCE_MEANINGS: dict[str, str] = {
     "肝機能": "liver function caution",
     "副作用": "side effect notice",
 }
+
+# Common Japanese OTC ingredients for cross-referencing and validation
+COMMON_INGREDIENTS: dict[str, str] = {
+    "イブプロフェン": "Ibuprofen",
+    "ロキソプロフェン": "Loxoprofen",
+    "アセトアミノフェン": "Acetaminophen",
+    "無水カフェイン": "Anhydrous Caffeine",
+    "酸化マグネシウム": "Magnesium Oxide",
+    "アリルイソプロピルアセチル尿素": "Allylisopropylacetylurea",
+    "トラネキサム酸": "Tranexamic acid",
+    "ジフェンヒドラミン": "Diphenhydramine",
+    "ブロムヘキシン": "Bromhexine",
+    "デキストロメトルファン": "Dextromethorphan",
+    "グアイフェネシン": "Guaifenesin",
+    "クロルフェニラミン": "Chlorpheniramine",
+    "ジヒドロコデイン": "Dihydrocodeine",
+    "メチルエフェドリン": "Methylephedrine",
+}

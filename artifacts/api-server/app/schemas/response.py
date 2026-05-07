@@ -53,8 +53,11 @@ class AnalyzeResponse(BaseModel):
     request_id: str
     content_type: ContentType
     product_name: str | None = None
+    product_name_en: str | None = None
     confidence_score: float
-    sections: ParsedSections
+    sections: ParsedSections # Deprecated: keep for compatibility if needed, or remove
+    sections_ja: ParsedSections
+    sections_en: ParsedSections
     consult_flags: list[ConsultFlag] = Field(default_factory=list)
     evidence: list[EvidenceLine] = Field(default_factory=list)
     summary_ja: str

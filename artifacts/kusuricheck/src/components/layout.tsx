@@ -4,13 +4,37 @@ import { useAppContext } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { useHealthCheck } from "@workspace/api-client-react";
 
+const NAV_CONTENT = {
+  en: {
+    scan: "Scan",
+    how: "How it works",
+    safety: "Safety",
+    disclaimer: "This tool provides translations and structural summaries of Japanese medicine labels.",
+    disclaimerBold: "It is not a doctor or pharmacist. Never use this as medical advice.",
+    safetyLink: "Safety & Limitations",
+    howLink: "How it works",
+  },
+  ja: {
+    scan: "スキャン",
+    how: "使い方",
+    safety: "安全について",
+    disclaimer: "このツールは、日本の医薬品ラベルの翻訳と構造化された要約を提供します。",
+    disclaimerBold: "これは医師や薬剤師ではありません。医療上のアドバイスとして決して使用しないでください。",
+    safetyLink: "安全と制限",
+    howLink: "使い方",
+  }
+};
+
 export function Navbar() {
   const { uiLanguage, setUiLanguage } = useAppContext();
   const [location] = useLocation();
+  const t = NAV_CONTENT[uiLanguage];
 
   const toggleLanguage = () => {
     setUiLanguage(uiLanguage === 'en' ? 'ja' : 'en');
   };
+
+  const isScanPage = location === '/scan';
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -27,13 +51,13 @@ export function Navbar() {
         <div className="flex items-center gap-1 md:gap-4">
           <div className="hidden md:flex items-center gap-1 mr-4">
             <Link href="/scan" className={`text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md ${location === '/scan' ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}>
-              Scan
+              {t.scan}
             </Link>
             <Link href="/how" className={`text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md ${location === '/how' ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}>
-              How it works
+              {t.how}
             </Link>
             <Link href="/safety" className={`text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md ${location === '/safety' ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}>
-              Safety
+              {t.safety}
             </Link>
           </div>
 
@@ -45,7 +69,7 @@ export function Navbar() {
             data-testid="button-lang-toggle"
           >
             <Globe className="h-4 w-4" />
-            <span className="uppercase text-xs font-semibold">{uiLanguage}</span>
+            <span className="uppercase text-xs font-semibold">{uiLanguage === 'en' ? '日本語' : 'English'}</span>
           </Button>
         </div>
       </div>
@@ -54,7 +78,8 @@ export function Navbar() {
 }
 
 export function Footer() {
-  const { data: health } = useHealthCheck();
+  const { uiLanguage } = useAppContext();
+  const t = NAV_CONTENT[uiLanguage];
 
   return (
     <footer className="border-t border-border/40 bg-background/50 mt-auto py-8">
@@ -65,28 +90,19 @@ export function Footer() {
             KusuriCheck
           </p>
           <p className="text-xs text-muted-foreground max-w-md">
-            This tool provides translations and structural summaries of Japanese medicine labels. 
-            <strong className="font-semibold text-foreground ml-1">It is not a doctor or pharmacist. Never use this as medical advice.</strong>
+            {t.disclaimer}
+            <strong className="font-semibold text-foreground ml-1">{t.disclaimerBold}</strong>
           </p>
         </div>
         
         <div className="flex items-center gap-4">
           <Link href="/safety" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-            Safety & Limitations
+            {t.safetyLink}
           </Link>
           <Link href="/how" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-            How it works
+            {t.howLink}
           </Link>
           
-          {health && (
-            <div 
-              className="px-2 py-1 rounded-full bg-secondary/50 border border-border text-[10px] font-medium text-muted-foreground uppercase tracking-wider ml-4"
-              title={`API Version: ${health.version}`}
-              data-testid={`status-mode-${health.processing_mode}`}
-            >
-              Mode: {health.processing_mode}
-            </div>
-          )}
         </div>
       </div>
     </footer>
@@ -94,13 +110,16 @@ export function Footer() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const isScanPage = location === '/scan';
+
   return (
-    <div className="min-h-[100dvh] flex flex-col w-full relative selection:bg-primary/20">
+    <div className="min-h-[100dvh] flex flex-col w-full relative selection:bg-primary/20 overflow-hidden">
       <Navbar />
-      <main className="flex-1 w-full flex flex-col">
+      <main className="flex-1 w-full flex flex-col overflow-hidden">
         {children}
       </main>
-      <Footer />
+      {!isScanPage && <Footer />}
     </div>
   );
 }

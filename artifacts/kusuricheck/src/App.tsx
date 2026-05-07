@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,8 +8,7 @@ import { AppProvider } from "@/lib/store";
 import { Layout } from "@/components/layout";
 
 import Home from "@/pages/home";
-import Scan from "@/pages/scan";
-import Result from "@/pages/result";
+import Dashboard from "@/pages/dashboard";
 import HowItWorks from "@/pages/how";
 import Safety from "@/pages/safety";
 import NotFound from "@/pages/not-found";
@@ -20,8 +20,7 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/scan" component={Scan} />
-        <Route path="/result" component={Result} />
+        <Route path="/scan" component={Dashboard} />
         <Route path="/how" component={HowItWorks} />
         <Route path="/safety" component={Safety} />
         <Route component={NotFound} />
@@ -31,6 +30,12 @@ function Router() {
 }
 
 function App() {
+  // Wake up the backend on Render free tier
+  useEffect(() => {
+    const baseUrl = import.meta.env.VITE_API_URL || "";
+    fetch(`${baseUrl}/api/healthz`).catch(() => {});
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

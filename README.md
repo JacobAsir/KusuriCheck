@@ -1,156 +1,128 @@
-# KusuriCheck
+# 💊 KusuriCheck
 
-Japan-first utility AI app that helps people understand Japanese OTC medicine
-packaging, supplement labels, and pharmacy instruction sheets. Take a photo of
-a Japanese label and get a careful, bilingual (Japanese + English) summary,
-structured fields (intended use, dosage, warnings, ingredients), and clear
-pharmacist / doctor consult flags.
+**KusuriCheck** is a privacy-first, AI-powered utility application designed to help English speakers and tourists understand Japanese over-the-counter (OTC) medicine packaging, supplement labels, and pharmacy instruction sheets safely and easily.
 
-KusuriCheck is **not** a doctor, pharmacist, or diagnostic tool. It never
-recommends a dose and never invents content that is not visible on the label.
+By taking a photo of a Japanese medicine label, KusuriCheck provides a careful, bilingual (Japanese + English) summary, extracts structured fields (intended use, dosage, warnings, active ingredients), and flags critical pharmacist or doctor consultations using a deterministic safety engine.
 
-## Architecture
+**Disclaimer:** KusuriCheck is **not** a doctor, pharmacist, or diagnostic tool. It never recommends a dose and never invents content that is not visible on the label. Always consult a healthcare professional for medical advice.
 
-Two artifacts in a pnpm monorepo:
+---
 
-- `artifacts/api-server/` — Python 3.11 + FastAPI backend. Stateless. No
-  database. Runs in mock mode without API keys.
-- `artifacts/kusuricheck/` — React + Vite frontend (TypeScript, Tailwind,
-  shadcn). Communicates with the backend through the shared OpenAPI contract.
+## 🌟 Key Features
 
-### Pipeline
+- **Bilingual Translation & Extraction:** Uses advanced vision-language models (Gemini) to extract and translate complex Japanese medical Kanji into clear, structured English.
+- **Audience Modes:** Tailor the AI's summary tone to your needs:
+  - **Standard:** Balanced medical translation.
+  - **Simple:** Plain, everyday language avoiding complex medical jargon.
+  - **Caregiver:** Emphasizes safe administration, dosage limits, and warnings.
+- **Personalized Caution Profiles:** Select your specific risk factors (Pregnant, Child, Elderly, Liver/Kidney issues) before scanning. The app's deterministic safety engine actively checks extracted warnings against your profile and highlights critical alerts if a match is found.
+- **100% Privacy-First:** No accounts required. No databases. Images are processed in-memory and are never stored. The application is completely stateless.
 
+## 🧑‍🤝‍🧑 Use Cases
+
+- **Tourists in Japan:** Catching a cold or getting a headache while visiting Japan? Easily translate complex drugstore medicine boxes to find out exactly what they treat and how to take them.
+- **Expatriates & Residents:** Understand prescription instruction sheets given by local pharmacies.
+- **Caregivers & Parents:** Safely navigate age restrictions and dosage requirements when administering Japanese medicine to children or elderly family members.
+
+---
+
+## 🚀 How to Use
+
+1. **Upload or Snap a Photo:** Take a clear photo of the medicine box, label, or instruction sheet.
+2. **Set Preferences (Optional):** Choose your preferred Audience Mode or select any Caution Profiles that apply to you.
+3. **Analyze:** The app processes the image in seconds.
+4. **Review Results:** Read the bilingual summary, check the dosage instructions, and review any highlighted safety warnings or pharmacist consultation flags.
+
+---
+
+## 🏗️ Architecture & Tech Stack
+
+This project is structured as a pnpm monorepo consisting of two main services:
+
+- **Frontend (`artifacts/kusuricheck/`):** React + Vite SPA built with TypeScript, Tailwind CSS, and shadcn/ui. Communicates with the backend through a shared OpenAPI contract.
+- **Backend (`artifacts/api-server/`):** Python 3.11 + FastAPI server. Entirely stateless with no database. Requires a Gemini API key for OCR and analysis.
+
+### The Pipeline
+
+```text
+Upload Image
+      │
+      ▼
+┌─────────────┐    ┌─────────────┐
+│ Gemini Flash│ -> │ Rule engine │
+│ Single-Pass │    │ R01..R10    │
+│ Extraction  │    │ deterministic│
+└─────────────┘    └─────────────┘
+      │                  │
+      ▼                  ▼
+Structured JSON + Bilingual Summary
 ```
-Upload / demo sample
-        │
-        ▼
-  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-  │     OCR     │ -> │  Classify   │ -> │   Parse     │
-  │ mock|gemini │    │ keyword     │    │ section /   │
-  │             │    │ heuristics  │    │ evidence    │
-  └─────────────┘    └─────────────┘    └─────────────┘
-                                                │
-                                                ▼
-                                        ┌─────────────┐
-                                        │ Rule engine │
-                                        │ R01..R10    │
-                                        │ deterministic│
-                                        └─────────────┘
-                                                │
-                                                ▼
-                                        ┌─────────────┐
-                                        │ Explainer   │
-                                        │ template OR │
-                                        │ Groq LLM    │
-                                        │ (grounded)  │
-                                        └─────────────┘
-                                                │
-                                                ▼
-                                          AnalyzeResponse
-```
 
-### Safety rules (R01–R10)
+### Deterministic Safety Engine (R01–R10)
+KusuriCheck uses a hardcoded, deterministic rule engine that cannot be overridden by the LLM.
 
 | Rule | Trigger                                           | Effect                |
 | ---- | ------------------------------------------------- | --------------------- |
-| R01  | "処方箋医薬品" / "要処方" markers                  | doctor flag           |
-| R02  | "劇薬" / "毒薬" wording                           | doctor flag           |
-| R03  | Pregnancy/breastfeeding restriction + profile    | pharmacist flag       |
-| R04  | Pediatric restriction + profile                  | pharmacist flag       |
-| R05  | Liver / kidney / elderly caution + profile       | pharmacist flag       |
-| R06  | Confidence < 0.4                                 | low-confidence warn   |
-| R07  | Dosage section missing                           | "do not assume" warn  |
-| R08  | Document type unclear                            | pharmacist flag       |
-| R09  | Serious side-effect / 副作用 / 重篤 wording      | doctor flag           |
-| R10  | Boxed warning ("【警告】", "重要な基本的注意")    | escalation 3          |
+| R01  | "処方箋医薬品" / "要処方" markers                  | Doctor flag           |
+| R02  | "劇薬" / "毒薬" wording                           | Doctor flag           |
+| R03  | Pregnancy/breastfeeding restriction + profile    | Pharmacist flag       |
+| R04  | Pediatric restriction + profile                  | Pharmacist flag       |
+| R05  | Liver / kidney / elderly caution + profile       | Pharmacist flag       |
+| R06  | Confidence < 0.4                                 | Low-confidence warn   |
+| R07  | Dosage section missing                           | "Do not assume" warn  |
+| R08  | Document type unclear                            | Pharmacist flag       |
+| R09  | Serious side-effect / 副作用 / 重篤 wording      | Doctor flag           |
+| R10  | Boxed warning ("【警告】", "重要な基本的注意")    | Level 3 Escalation    |
 
-Escalation levels:
+**Escalation levels:**
+- `0` — Calm informational
+- `1` — Pharmacist suggested
+- `2` — Doctor suggested
+- `3` — Sections suppressed; "we cannot safely summarize" fallback. (Triggered by R10 alone, R01+R02 together, or R08+R06 together).
 
-- 0 — calm informational
-- 1 — pharmacist suggested
-- 2 — doctor suggested
-- 3 — sections suppressed; "we cannot safely summarize" fallback. Triggered by
-  R10 alone, R01+R02 together, or R08+R06 together.
+---
 
-The rule engine is purely deterministic. The LLM never overrides it.
+## 💻 Local Development
 
-## Local development on Replit
+### Environment Variables
+Create a `.env` file in `artifacts/api-server/` with the following:
 
-The Replit workflows wire everything up automatically. Open the preview pane
-to see the frontend; the API runs at `/api`.
-
-Useful commands:
-
-```bash
-# Run the backend unit tests
-cd artifacts/api-server && python -m pytest tests/
-
-# Re-run OpenAPI codegen (after editing lib/api-spec/openapi.yaml)
-pnpm --filter @workspace/api-spec run codegen
-
-# Manual API checks
-curl http://localhost:80/api/healthz
-curl http://localhost:80/api/demo-samples
-```
-
-## Local development with Docker
-
-A `docker-compose.yml` is provided for running the full stack outside Replit.
-
-```bash
-# Mock mode — no API keys needed
-docker compose up --build
-
-# With real OCR / explainer
-GEMINI_API_KEY=... GROQ_API_KEY=... docker compose up --build
-```
-
-The web app will be available at <http://localhost:8080> and proxies
-`/api/*` to the backend container.
-
-## Environment variables
-
-| Var               | Required | Default                       | Notes                              |
+| Variable          | Required | Default                       | Notes                              |
 | ----------------- | -------- | ----------------------------- | ---------------------------------- |
+| `GEMINI_API_KEY`  | **yes**  | None                          | Required for core OCR functionality|
 | `APP_ENV`         | no       | `development`                 | `production` enables JSON logs     |
 | `LOG_LEVEL`       | no       | `INFO`                        |                                    |
 | `MAX_UPLOAD_MB`   | no       | `10`                          | Per-file upload limit              |
-| `GEMINI_API_KEY`  | no       | _(mock OCR)_                  | When set, uses Gemini 1.5 for OCR  |
-| `GROQ_API_KEY`    | no       | _(template fallback)_         | When set, uses Groq LLM explainer  |
-| `GROQ_MODEL`      | no       | `llama-3.3-70b-versatile`     |                                    |
 
-Without any keys, the stack runs end-to-end in **mock mode** using built-in
-fixtures so reviewers always see realistic output.
+### Option 1: Docker (Recommended)
+A `docker-compose.yml` is provided for running the full stack easily.
 
-## Built-in demo samples
+```bash
+GEMINI_API_KEY=your_key_here docker compose up --build
+```
+The web app will be available at `http://localhost:8080` and proxies `/api/*` to the backend.
 
-Available at `GET /api/demo-samples`:
+### Option 2: Manual Execution
 
-1. `otc-cold` — OTC cold medicine (Pablon S, 指定第2類)
-2. `otc-painkiller` — OTC painkiller (Loxonin S, 第1類)
-3. `supplement-vitamin` — Multivitamin (栄養機能食品)
-4. `pharmacy-instruction` — Pharmacy instruction sheet (薬剤情報提供書)
-5. `high-risk-warning` — High-risk warning (Warfarin, 処方箋医薬品)
+**Backend (Python):**
+```bash
+cd artifacts/api-server
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+*Backend runs on http://localhost:8000*
 
-Sample 5 deterministically demonstrates escalation level 3 with the
-"we cannot safely summarize" fallback.
+**Frontend (Node.js):**
+```bash
+cd artifacts/kusuricheck
+pnpm install
+pnpm dev
+```
+*Frontend runs on http://localhost:8080 (proxies to 8000)*
 
-## API surface
-
-| Method | Path                  | Purpose                                    |
-| ------ | --------------------- | ------------------------------------------ |
-| GET    | `/api/healthz`        | Health + processing-mode badge             |
-| GET    | `/api/demo-samples`   | List built-in demo samples                 |
-| POST   | `/api/analyze-demo`   | Analyze a built-in sample (JSON)           |
-| POST   | `/api/analyze`        | Analyze an uploaded image (multipart)      |
-
-The OpenAPI contract lives in `lib/api-spec/openapi.yaml`. The frontend's
-React Query hooks are generated from it automatically.
-
-## What KusuriCheck will not do
-
-- Diagnose conditions
-- Recommend doses beyond what is literally written on the label
-- Suggest alternative medicines
-- Replace a pharmacist or doctor
-- Persist any user data — every request is stateless
+## ⚠️ What KusuriCheck will not do
+- Diagnose conditions.
+- Recommend doses beyond what is literally written on the label.
+- Suggest alternative medicines.
+- Replace a pharmacist or doctor.
+- Persist any user data — every request is entirely stateless.

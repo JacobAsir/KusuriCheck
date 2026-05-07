@@ -1,12 +1,11 @@
-// Custom client for the multipart /api/analyze endpoint.
-// The OpenAPI spec only models JSON endpoints (codegen handles those via
-// @workspace/api-client-react). File upload is hand-written so the response
-// type still matches the generated AnalyzeResponse shape.
-
 import { useMutation } from "@tanstack/react-query";
 import type { AnalyzeResponse as GeneratedAnalyzeResponse } from "@workspace/api-client-react";
 
-export type AnalyzeResponse = GeneratedAnalyzeResponse;
+export type AnalyzeResponse = GeneratedAnalyzeResponse & {
+  sections_ja: GeneratedAnalyzeResponse["sections"];
+  sections_en: GeneratedAnalyzeResponse["sections"];
+  product_name_en?: string;
+};
 
 export type CautionProfile = {
   pregnant_breastfeeding: boolean;
@@ -66,7 +65,8 @@ export async function analyzeFile(
   form.append("file", input.file);
   form.append("preferences", JSON.stringify(input.preferences));
 
-  const resp = await fetch("/api/analyze", {
+  const baseUrl = import.meta.env.VITE_API_URL || "";
+  const resp = await fetch(`${baseUrl}/api/analyze`, {
     method: "POST",
     body: form,
   });

@@ -33,9 +33,7 @@ class OCRProviderError(KusuriCheckError):
     error_code = "ocr_provider_failure"
 
 
-class ExplainerProviderError(KusuriCheckError):
-    status_code = 502
-    error_code = "explainer_provider_failure"
+
 
 
 class UnknownDemoError(KusuriCheckError):

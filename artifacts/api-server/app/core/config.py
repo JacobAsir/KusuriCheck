@@ -20,8 +20,6 @@ class Settings(BaseSettings):
     allowed_file_types: str = "image/jpeg,image/png,image/webp,application/pdf"
 
     gemini_api_key: str | None = None
-    groq_api_key: str | None = None
-    groq_model: str = "llama-3.3-70b-versatile"
 
     @property
     def allowed_mime_set(self) -> set[str]:
@@ -34,10 +32,6 @@ class Settings(BaseSettings):
     @property
     def ocr_mode(self) -> str:
         return "gemini" if self.gemini_api_key else "mock"
-
-    @property
-    def explainer_mode(self) -> str:
-        return "groq" if self.groq_api_key else "fallback"
 
 
 settings = Settings()
