@@ -2,8 +2,8 @@ import base64
 import json
 import httpx
 from typing import Optional
-from loguru import logger
 
+from app.core.logging import logger
 from app.core.config import settings
 from app.core.errors import OCRProviderError
 from app.schemas.request import UserPreferences
